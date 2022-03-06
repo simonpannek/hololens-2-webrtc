@@ -291,10 +291,10 @@ MonoBehaviour:
   VideoWidth: 640
   VideoHeight: 360
   VideoFps: 30
-  VideoProfileId: 
+  VideoProfileId: '{6B52B017-42C7-4A21-BFE3-23F009149887},120'
   Port: 9095
   ConnectionType: 0
-  UseRemoteStun: 0
+  UseRemoteStun: 1
 --- !u!4 &825227016
 Transform:
   m_ObjectHideFlags: 0
