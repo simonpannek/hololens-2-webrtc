@@ -32,6 +32,13 @@ MonoBehaviour:
     - com.microsoft.spatialaudio
     m_IsDefault: 0
     m_Capabilities: 0
+  - m_Id: scoped:Packages from jillejr
+    m_Name: Packages from jillejr
+    m_Url: https://npm.cloudsmith.io/jillejr/newtonsoft-json-for-unity
+    m_Scopes:
+    - jillejr
+    m_IsDefault: 0
+    m_Capabilities: 0
   - m_Id: scoped:MS Build for Unity
     m_Name: MS Build for Unity
     m_Url: https://pkgs.dev.azure.com/UnityDeveloperTools/MSBuildForUnity/_packaging/UnityDeveloperTools/npm/registry
