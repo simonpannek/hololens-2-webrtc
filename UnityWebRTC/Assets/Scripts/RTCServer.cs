@@ -83,6 +83,7 @@ public class RTCServer : MonoBehaviour
     async void OnClientConnected()
     {
         var pc = signaler.PeerConnection;
+
         // Record video from local webcam, and send to remote peer
         if (NeedVideo)
         {
@@ -134,20 +135,15 @@ public class RTCServer : MonoBehaviour
             audioTransceiver.LocalAudioTrack = localAudioTrack;
         }
 
-        // Start peer connection
-        int numFrames = 0;
-        pc.VideoTrackAdded += (RemoteVideoTrack track) =>
-        {
-            Debug.Log($"Attach Frame Listener...");
-            track.I420AVideoFrameReady += (I420AVideoFrame frame) =>
-            {
-                ++numFrames;
-                if (numFrames % 60 == 0)
-                {
-                    Debug.Log($"Received video frames: {numFrames}");
-                }
-            };
+        // Add data channel for communication
+        var channel = await pc.AddDataChannelAsync("detection", true, false);
+
+        channel.MessageReceived += (byte[] message) => {
+            string s = System.Text.Encoding.UTF8.GetString(message, 0, message.Length);
+            Debug.Log($"Message received: {s}");
         };
+
+        // Start peer connection
         // we need a short delay here for the video stream to settle...
         // I assume my Logitech webcam is sending some garbage frames in the beginning.
         await Task.Delay(200);

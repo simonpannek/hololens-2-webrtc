@@ -21,11 +21,21 @@ _LOGGER = logging.getLogger("mr.webrtc.python")
 _LOGGER.addHandler(logging.NullHandler())
 
 
+def send(message):
+    _LOGGER.info("Receiver Channel > " + message)
+    receiver.send_message(message)
+
+
 async def run(pc, receiver, signaling, queue, render):
     @pc.on("track")
     def on_track(track):
         _LOGGER.info("Receiving %s" % track.kind)
-        receiver.addTrack(track)
+        receiver.add_track(track)
+
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        _LOGGER.info("Receiving %s" % channel)
+        receiver.set_channel(channel)
 
     # load model
     model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
@@ -56,7 +66,11 @@ async def run(pc, receiver, signaling, queue, render):
                                 cv2.imshow("render", rendered)
                                 cv2.waitKey(1)
                             else:
-                                print(result.pandas().xyxy[0])
+                                pandas = result.pandas()
+                                xyxy = pandas.xyxy[0]
+                                json = xyxy.to_json(orient="records")
+
+                                send(json)
 
                         except Exception as e:
                             print(e)
