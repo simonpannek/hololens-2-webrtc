@@ -1,6 +1,6 @@
-import cv2
-from aiortc.contrib.media import MediaRecorderContext
 import asyncio
+
+from aiortc.mediastreams import MediaStreamError
 
 
 class OpenCVReceiver:

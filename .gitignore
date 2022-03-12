@@ -32,6 +32,9 @@
 # VSCode settings
 .vscode
 
+# Jetbrains Settings
+.idea
+
 # Gradle cache directory
 .gradle/
 
@@ -96,3 +99,6 @@ UWP/
 NuGet.config
 NuGet.config.meta
 MSBuildForUnity.Common.props
+
+# YOLOv5
+*.pt
