@@ -1,20 +1,18 @@
 import argparse
 import asyncio
-import logging
-import math
 from collections import deque
 
 import cv2
-import numpy
 import logging
+
+import torch
 
 from aiortc import (
     RTCIceCandidate,
     RTCPeerConnection,
     RTCSessionDescription,
-    VideoStreamTrack,
 )
-from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling
+from aiortc.contrib.signaling import BYE, add_signaling_arguments
 
 from receiver import OpenCVReceiver
 from signaler import UnityTcpSignaling
@@ -23,20 +21,24 @@ _LOGGER = logging.getLogger("mr.webrtc.python")
 _LOGGER.addHandler(logging.NullHandler())
 
 
-async def run(pc, player, receiver, signaling, role, queue):
-    def add_tracks():
-        if player and player.audio:
-            pc.addTrack(player.audio)
+def send(message):
+    _LOGGER.debug("Receiver Channel > " + message)
+    receiver.send_message(message)
 
-        if player and player.video:
-            pc.addTrack(player.video)
-        else:
-            pc.addTrack(FlagVideoStreamTrack())
 
+async def run(pc, receiver, signaling, queue, render):
     @pc.on("track")
     def on_track(track):
         _LOGGER.info("Receiving %s" % track.kind)
-        receiver.addTrack(track)
+        receiver.add_track(track)
+
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        _LOGGER.info("Receiving datachannel '%s'" % channel.label)
+        receiver.set_channel(channel)
+
+    # load model
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
     # connect signaling
     _LOGGER.info("Waiting for signaler connection ...")
@@ -45,8 +47,6 @@ async def run(pc, player, receiver, signaling, role, queue):
     # consume signaling
     while True:
         obj = await signaling.receive()
-        # if obj is not None:
-        #     print(obj)
 
         if isinstance(obj, RTCSessionDescription):
             await pc.setRemoteDescription(obj)
@@ -58,17 +58,28 @@ async def run(pc, player, receiver, signaling, role, queue):
                         img = queue.pop()
                         queue.clear()
                         try:
-                            cv2.imshow("hello", img)
-                            cv2.waitKey(1)
+                            result = model(img)
+
+                            if render:
+                                rendered = result.render()[0]
+
+                                cv2.imshow("render", rendered)
+                                cv2.waitKey(1)
+                            else:
+                                pandas = result.pandas()
+                                xyxy = pandas.xyxy[0]
+                                json = xyxy.to_json(orient="records")
+
+                                send(json)
+
                         except Exception as e:
                             print(e)
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.2)
 
             asyncio.create_task(check_queue())
 
             if obj.type == "offer":
                 # send answer
-                # add_tracks()
                 await pc.setLocalDescription(await pc.createAnswer())
                 await signaling.send(pc.localDescription)
         elif isinstance(obj, RTCIceCandidate):
@@ -79,12 +90,11 @@ async def run(pc, player, receiver, signaling, role, queue):
 
 
 if __name__ == "__main__":
-    import time
-
     parser = argparse.ArgumentParser(description="Video stream from the command line")
     parser.add_argument("--verbose", "-v", action="count")
     parser.add_argument("--host", "-ip", help="ip address of signaler/sender instance")
     parser.add_argument("--port", "-p", help="port of signaler/sender instance")
+    parser.add_argument("--render", "-r", action="count", help="render the detection instead of sending it back")
     add_signaling_arguments(parser)
     args = parser.parse_args()
 
@@ -101,7 +111,6 @@ if __name__ == "__main__":
     signaling = UnityTcpSignaling(host=host, port=port)
     pc = RTCPeerConnection()
 
-    player = None
     frame_queue = deque()
     receiver = OpenCVReceiver(queue=frame_queue)
     # run event loop
@@ -110,11 +119,10 @@ if __name__ == "__main__":
         loop.run_until_complete(
             run(
                 pc=pc,
-                player=player,
                 receiver=receiver,
                 signaling=signaling,
-                role="answer",
                 queue=frame_queue,
+                render=args.render,
             )
         )
     except KeyboardInterrupt:

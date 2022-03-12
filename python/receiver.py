@@ -1,16 +1,23 @@
-import cv2
-from aiortc.contrib.media import MediaRecorderContext
 import asyncio
+
+from aiortc.mediastreams import MediaStreamError
 
 
 class OpenCVReceiver:
     def __init__(self, queue):
         self.__tracks = []
+        self.__channel = None
         self.__tasks = []
         self.queue = queue
 
-    def addTrack(self, track):
+    def add_track(self, track):
         self.__tracks.append(track)
+
+    def set_channel(self, channel):
+        self.__channel = channel
+
+    def send_message(self, message):
+        self.__channel.send(message)
 
     async def start(self):
         for track in self.__tracks:
