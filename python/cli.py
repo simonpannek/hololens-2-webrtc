@@ -22,7 +22,7 @@ _LOGGER.addHandler(logging.NullHandler())
 
 
 def send(message):
-    _LOGGER.info("Receiver Channel > " + message)
+    _LOGGER.debug("Receiver Channel > " + message)
     receiver.send_message(message)
 
 
@@ -34,7 +34,7 @@ async def run(pc, receiver, signaling, queue, render):
 
     @pc.on("datachannel")
     def on_datachannel(channel):
-        _LOGGER.info("Receiving %s" % channel)
+        _LOGGER.info("Receiving datachannel '%s'" % channel.label)
         receiver.set_channel(channel)
 
     # load model
