@@ -38,10 +38,13 @@ def unity_object_from_string(message_str):
 
 class UnityTcpSignaling(TcpSocketSignaling):
     async def receive(self):
-        await self._connect(False)
         try:
-            data = await self._reader.readuntil()
+            await self._connect(False)
+            task = self._reader.readuntil()
+            data = await asyncio.wait_for(task, timeout=5.0)
         except asyncio.IncompleteReadError:
+            return
+        except WindowsError:
             return
         return unity_object_from_string(data.decode("utf8"))
 
