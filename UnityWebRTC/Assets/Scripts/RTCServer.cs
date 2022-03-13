@@ -2,6 +2,7 @@
 using Microsoft.MixedReality.WebRTC;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 public class RTCServer : MonoBehaviour
 {
@@ -128,9 +129,10 @@ public class RTCServer : MonoBehaviour
         // Add data channel for communication
         var channel = await pc.AddDataChannelAsync("detection", true, false);
 
-        channel.MessageReceived += (byte[] message) => {
-            string s = System.Text.Encoding.UTF8.GetString(message, 0, message.Length);
-            Debug.Log($"Message received: {s}");
+        channel.MessageReceived += (byte[] buffer) => {
+            string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            JArray json = JArray.Parse(message);
+            Debug.Log($"Message received: {json}");
         };
 
         // Start peer connection
