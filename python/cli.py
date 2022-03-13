@@ -26,7 +26,7 @@ def send(message):
     receiver.send_message(message)
 
 
-async def run(pc, receiver, signaling, queue, render):
+async def run(pc, receiver, signaling, queue, render, model):
     @pc.on("track")
     def on_track(track):
         _LOGGER.info("Receiving %s" % track.kind)
@@ -37,46 +37,58 @@ async def run(pc, receiver, signaling, queue, render):
         _LOGGER.info("Receiving datachannel '%s'" % channel.label)
         receiver.set_channel(channel)
 
-    # load model
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-
     # connect signaling
     _LOGGER.info("Waiting for signaler connection ...")
     await signaling.connect()
 
+    task = None
+
+    async def check_queue():
+        counter = 0
+        while True:
+            if len(queue):
+                counter = 0
+                img = queue.pop()
+                queue.clear()
+                try:
+                    result = model(img)
+
+                    if render:
+                        rendered = result.render()[0]
+
+                        cv2.imshow("render", rendered)
+                        cv2.waitKey(1)
+                    else:
+                        pandas = result.pandas()
+                        xyxy = pandas.xyxy[0]
+                        json = xyxy.to_json(orient="records")
+
+                        send(json)
+
+                except Exception as e:
+                    print(e)
+            else:
+                counter += 1
+
+            if counter >= 10:
+                return
+            await asyncio.sleep(0.2)
+
     # consume signaling
     while True:
-        obj = await signaling.receive()
+        try:
+            obj = await signaling.receive()
+        except asyncio.TimeoutError:
+            await signaling.close()
+            if task:
+                await task
+            break
 
         if isinstance(obj, RTCSessionDescription):
             await pc.setRemoteDescription(obj)
             await receiver.start()
 
-            async def check_queue():
-                while True:
-                    if len(queue):
-                        img = queue.pop()
-                        queue.clear()
-                        try:
-                            result = model(img)
-
-                            if render:
-                                rendered = result.render()[0]
-
-                                cv2.imshow("render", rendered)
-                                cv2.waitKey(1)
-                            else:
-                                pandas = result.pandas()
-                                xyxy = pandas.xyxy[0]
-                                json = xyxy.to_json(orient="records")
-
-                                send(json)
-
-                        except Exception as e:
-                            print(e)
-                    await asyncio.sleep(0.2)
-
-            asyncio.create_task(check_queue())
+            task = asyncio.create_task(check_queue())
 
             if obj.type == "offer":
                 # send answer
@@ -107,29 +119,37 @@ if __name__ == "__main__":
     host = args.host or "localhost"
     port = args.port or 9095
 
-    # create signaling and peer connection
-    signaling = UnityTcpSignaling(host=host, port=port)
-    pc = RTCPeerConnection()
+    # load model
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
-    frame_queue = deque()
-    receiver = OpenCVReceiver(queue=frame_queue)
-    # run event loop
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(
-            run(
-                pc=pc,
-                receiver=receiver,
-                signaling=signaling,
-                queue=frame_queue,
-                render=args.render,
+    running = True
+
+    while running:
+        # create signaling and peer connection
+        signaling = UnityTcpSignaling(host=host, port=port)
+        pc = RTCPeerConnection()
+
+        frame_queue = deque()
+        receiver = OpenCVReceiver(queue=frame_queue)
+        # run event loop
+        loop = asyncio.get_event_loop()
+
+        try:
+            loop.run_until_complete(
+                run(
+                    pc=pc,
+                    receiver=receiver,
+                    signaling=signaling,
+                    queue=frame_queue,
+                    render=args.render,
+                    model=model,
+                )
             )
-        )
-    except KeyboardInterrupt:
-        pass
-    finally:
-        # cleanup
-        _LOGGER.info("Shutting down receiver and peer connection.")
-        loop.run_until_complete(receiver.stop())
-        loop.run_until_complete(signaling.close())
-        loop.run_until_complete(pc.close())
+        except KeyboardInterrupt:
+            running = False
+        finally:
+            # cleanup
+            _LOGGER.info("Shutting down receiver and peer connection.")
+            loop.run_until_complete(receiver.stop())
+            loop.run_until_complete(signaling.close())
+            loop.run_until_complete(pc.close())

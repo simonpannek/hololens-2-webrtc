@@ -24,7 +24,6 @@ public class RTCServer : MonoBehaviour
     public string VideoProfileId = "";
 
     public int Port = 9999;
-    public SignalerType ConnectionType = SignalerType.TCP;
 
     public bool UseRemoteStun = false;
 
@@ -60,17 +59,8 @@ public class RTCServer : MonoBehaviour
 
         // Setup signaling
         Debug.Log("Starting signaling...");
-        switch (ConnectionType)
-        {
-            case SignalerType.TCP:
-                signaler = new TCPSignaler(Port);
-                break;
-            case SignalerType.WebSocket:
-                signaler = new WebSocketSignaler(Port);
-                break;
-            default:
-                throw new System.Exception($"Signaler connection type {ConnectionType} is not valid!");
-        }
+        signaler = new TCPSignaler(Port);
+
         signaler.ClientConnected += OnClientConnected;
         signaler.ClientDisconnected += OnClientDisconnected;
         if (UseRemoteStun)
@@ -164,11 +154,5 @@ public class RTCServer : MonoBehaviour
         OnClientDisconnected();
         signaler?.Stop();
         Debug.Log("Program terminated.");
-    }
-
-    public enum SignalerType
-    {
-        TCP = 0,
-        WebSocket = 1
     }
 }
