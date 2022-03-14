@@ -8,7 +8,7 @@ using Microsoft.MixedReality.Toolkit.UI;
 /// <summary>
 /// Based on https://github.com/LocalJoost/ToyAircraftFinder/blob/master/Assets/App/Scripts/ObjectLabeler.cs
 /// </summary>
-public class ObjectLabeler : MonoBehaviour
+public class ObjectLabeler
 {
     private List<GameObject> _createdObjects = new List<GameObject>();
 
@@ -53,7 +53,7 @@ public class ObjectLabeler : MonoBehaviour
             _debugObject.SetActive(false);
         }
 
-        Destroy(cameraTransform.gameObject);*/
+        UnityEngine.Object.Destroy(cameraTransform.gameObject);*/
     }
 
     private Vector3? DoRaycastOnSpatialMap(Transform cameraTransform, Vector3 recognitionCenterPos)
@@ -73,14 +73,14 @@ public class ObjectLabeler : MonoBehaviour
     {
         foreach (var label in _createdObjects)
         {
-            Destroy(label);
+            UnityEngine.Object.Destroy(label);
         }
         _createdObjects.Clear();
     }
 
     private GameObject CreateLabel(string text, Vector3 location)
     {
-        var labelObject = Instantiate(_labelObject);
+        var labelObject = UnityEngine.Object.Instantiate(_labelObject);
         var toolTip = labelObject.GetComponent<ToolTip>();
         toolTip.ShowHighlight = false;
         toolTip.ShowBackground = true;
