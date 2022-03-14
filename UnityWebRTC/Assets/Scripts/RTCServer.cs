@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 public class RTCServer : MonoBehaviour
 {
     Signaler signaler;
+    ObjectLabeler labeler;
     Transceiver audioTransceiver = null;
     Transceiver videoTransceiver = null;
     AudioTrackSource audioTrackSource = null;
@@ -69,6 +70,9 @@ public class RTCServer : MonoBehaviour
             signaler.IceServers.Add(new IceServer { Urls = { "stun:stun.l.google.com:19302" } });
         }
         signaler.Start();
+
+        // Create labeler
+        labeler = new ObjectLabeler();
     }
 
     async void OnClientConnected()
@@ -129,10 +133,18 @@ public class RTCServer : MonoBehaviour
         // Add data channel for communication
         var channel = await pc.AddDataChannelAsync("detection", true, false);
 
-        channel.MessageReceived += (byte[] buffer) => {
+        channel.MessageReceived += (byte[] buffer) =>
+        {
             string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
             JArray json = JArray.Parse(message);
-            Debug.Log($"Message received: {json}");
+            labeler.LabelObjects(json, null, VideoWidth, VideoHeight);
+            //CopyCameraTransForm();
+
+            /*foreach (JObject prediction in json)
+            {
+                //string test = prediction.GetValue("")
+                Debug.Log("Test");
+            }*/
         };
 
         // Start peer connection
@@ -156,5 +168,14 @@ public class RTCServer : MonoBehaviour
         OnClientDisconnected();
         signaler?.Stop();
         Debug.Log("Program terminated.");
+    }
+
+    private void CopyCameraTransForm()
+    {
+        //var g = new GameObject();
+        /*g.transform.position = CameraCache.Main.transform.position;
+        g.transform.rotation = CameraCache.Main.transform.rotation;
+        g.transform.localScale = CameraCache.Main.transform.localScale;*/
+        //return g.transform;
     }
 }

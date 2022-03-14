@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -245,7 +245,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83d9acc7968244a8886f3af591305bcb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  activeProfile: {fileID: 11400000, guid: fbb8235a0e1db804880e49990996f5a4, type: 2}
+  activeProfile: {fileID: 11400000, guid: 7f1517ea3141eb747bfd7fe29c006528, type: 2}
 --- !u!4 &647152563
 Transform:
   m_ObjectHideFlags: 0
@@ -270,6 +270,7 @@ GameObject:
   m_Component:
   - component: {fileID: 825227016}
   - component: {fileID: 825227015}
+  - component: {fileID: 825227017}
   m_Layer: 0
   m_Name: Launcher
   m_TagString: Untagged
@@ -296,7 +297,6 @@ MonoBehaviour:
   VideoFps: 30
   VideoProfileId: '{6B52B017-42C7-4A21-BFE3-23F009149887},120'
   Port: 9095
-  ConnectionType: 0
   UseRemoteStun: 1
 --- !u!4 &825227016
 Transform:
@@ -312,6 +312,21 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &825227017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 825227014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9021306d1c6bec84faf8ce412d8fec2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _labelObject: {fileID: 0}
+  _labelContainer: {fileID: 0}
+  _debugObject: {fileID: 0}
 --- !u!1 &921450427
 GameObject:
   m_ObjectHideFlags: 0

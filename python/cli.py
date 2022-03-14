@@ -60,8 +60,8 @@ async def run(pc, receiver, signaling, queue, render, model):
                         cv2.waitKey(1)
                     else:
                         pandas = result.pandas()
-                        xyxy = pandas.xyxy[0]
-                        json = xyxy.to_json(orient="records")
+                        xyxyn = pandas.xyxyn[0]
+                        json = xyxyn.to_json(orient="records")
 
                         send(json)
 
