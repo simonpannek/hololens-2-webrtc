@@ -12,36 +12,45 @@ public class ObjectLabeler
 {
     private List<GameObject> _createdObjects = new List<GameObject>();
 
-    [SerializeField]
     private GameObject _labelObject;
-
-    [SerializeField]
     private GameObject _labelContainer;
-
-    [SerializeField]
     private GameObject _debugObject;
+
+    public ObjectLabeler(GameObject _labelObject, GameObject _labelContainer, GameObject _debugObject)
+    {
+        this._labelObject = _labelObject;
+        this._labelContainer = _labelContainer;
+        this._debugObject = _debugObject;
+    }
 
     public virtual void LabelObjects(JArray predictions,
         Transform cameraTransform, uint VideoWidth, uint VideoHeight)
     {
         ClearLabels();
         var heightFactor = VideoHeight / VideoWidth;
-        /*var topCorner = cameraTransform.position + cameraTransform.forward -
+        var topCorner = cameraTransform.position + cameraTransform.forward -
                         cameraTransform.right / 2f +
-                        cameraTransform.up * heightFactor / 2f;*/
+                        cameraTransform.up * heightFactor / 2f; 
+
         foreach (JObject prediction in predictions)
         {
-            string text = prediction.GetValue("name").ToString();
+            string name = prediction.GetValue("name").Value<string>();
+            float xmin = prediction.GetValue("xmin").Value<float>();
+            float ymin = prediction.GetValue("ymin").Value<float>();
+            float xmax = prediction.GetValue("xmax").Value<float>();
+            float ymax = prediction.GetValue("ymax").Value<float>();
+            float confidence = prediction.GetValue("confidence").Value<float>();
 
-            Debug.Log($"test: {text}");
-            /*var center = prediction.GetCenter();
-            var recognizedPos = topCorner + cameraTransform.right * center.x -
-                                cameraTransform.up * center.y * heightFactor;
-
-#if UNITY_EDITOR
-             _createdObjects.Add(CreateLabel(_labelText, recognizedPos));
-#endif
-            var labelPos = DoRaycastOnSpatialMap(cameraTransform, recognizedPos);
+            Debug.Log($"name: {name} x: {xmin} - {xmax}, y: {ymin} - {ymax}, conf: {confidence}");
+            var centerX = xmax - xmin;
+            var centerY = ymax - ymin;
+            var recognizedPos = topCorner + cameraTransform.right * centerX -
+                                cameraTransform.up * centerY * heightFactor;
+            
+            //#if UNITY_EDITOR
+             _createdObjects.Add(CreateLabel(name, recognizedPos));
+            //#endif
+            /*var labelPos = DoRaycastOnSpatialMap(cameraTransform, recognizedPos);
             if (labelPos != null)
             {
                 _createdObjects.Add(CreateLabel(_labelText, labelPos.Value));

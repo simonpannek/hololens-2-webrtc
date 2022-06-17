@@ -3,11 +3,13 @@ using Microsoft.MixedReality.WebRTC;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Microsoft.MixedReality.Toolkit.Utilities;
 
 public class RTCServer : MonoBehaviour
 {
     Signaler signaler;
     ObjectLabeler labeler;
+    JArray detections = null;
     Transceiver audioTransceiver = null;
     Transceiver videoTransceiver = null;
     AudioTrackSource audioTrackSource = null;
@@ -28,6 +30,15 @@ public class RTCServer : MonoBehaviour
     public int Port = 9999;
 
     public bool UseRemoteStun = false;
+
+    [SerializeField]
+    private GameObject _labelObject;
+
+    [SerializeField]
+    private GameObject _labelContainer;
+
+    [SerializeField]
+    private GameObject _debugObject;
 
     async void Start()
     {
@@ -72,7 +83,24 @@ public class RTCServer : MonoBehaviour
         signaler.Start();
 
         // Create labeler
-        labeler = new ObjectLabeler();
+        labeler = new ObjectLabeler(_labelObject, _labelContainer, _debugObject);
+
+        while (true)
+        {
+            await Task.Delay(1000);
+            Debug.Log("lmao");
+
+            if (detections != null)
+            {
+                Debug.Log("test");
+                var currentDetections = detections;
+                detections = null;
+
+                var currentTransform = Camera.main.transform;
+
+                labeler.LabelObjects(currentDetections, currentTransform, VideoWidth, VideoHeight);
+            }
+        }
     }
 
     async void OnClientConnected()
@@ -136,8 +164,8 @@ public class RTCServer : MonoBehaviour
         channel.MessageReceived += (byte[] buffer) =>
         {
             string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-            JArray json = JArray.Parse(message);
-            labeler.LabelObjects(json, null, VideoWidth, VideoHeight);
+            detections = JArray.Parse(message);
+            //labeler.LabelObjects(json, null, VideoWidth, VideoHeight);
             //CopyCameraTransForm();
 
             /*foreach (JObject prediction in json)
@@ -170,12 +198,12 @@ public class RTCServer : MonoBehaviour
         Debug.Log("Program terminated.");
     }
 
-    private void CopyCameraTransForm()
+    private Transform CopyCameraTransForm()
     {
-        //var g = new GameObject();
-        /*g.transform.position = CameraCache.Main.transform.position;
+        var g = new GameObject();
+        g.transform.position = CameraCache.Main.transform.position;
         g.transform.rotation = CameraCache.Main.transform.rotation;
-        g.transform.localScale = CameraCache.Main.transform.localScale;*/
-        //return g.transform;
+        g.transform.localScale = CameraCache.Main.transform.localScale;
+        return g.transform;
     }
 }
