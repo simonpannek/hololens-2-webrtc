@@ -52,18 +52,18 @@ async def run(pc, receiver, signaling, queue, render, model):
                 queue.clear()
                 try:
                     result = model(img)
+                    
+                    pandas = result.pandas()
+                    xyxyn = pandas.xyxyn[0]
+                    json = xyxyn.to_json(orient="records")
+
+                    send(json)
 
                     if render:
                         rendered = result.render()[0]
 
                         cv2.imshow("render", rendered)
                         cv2.waitKey(1)
-                    else:
-                        pandas = result.pandas()
-                        xyxyn = pandas.xyxyn[0]
-                        json = xyxyn.to_json(orient="records")
-
-                        send(json)
 
                 except Exception as e:
                     print(e)
@@ -72,7 +72,7 @@ async def run(pc, receiver, signaling, queue, render, model):
 
             if counter >= 10:
                 return
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(5.2)
 
     # consume signaling
     while True:

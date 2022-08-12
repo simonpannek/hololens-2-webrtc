@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json.Linq;
 using Microsoft.MixedReality.Toolkit.UI;
+using Microsoft.MixedReality.Toolkit.SpatialAwareness;
+using Microsoft.MixedReality.Toolkit;
 
 /// <summary>
 /// Based on https://github.com/LocalJoost/ToyAircraftFinder/blob/master/Assets/App/Scripts/ObjectLabeler.cs
@@ -15,6 +17,8 @@ public class ObjectLabeler
     private GameObject _labelObject;
     private GameObject _labelContainer;
     private GameObject _debugObject;
+
+    private static int _meshPhysicsLayer = 0;
 
     public ObjectLabeler(GameObject _labelObject, GameObject _labelContainer, GameObject _debugObject)
     {
@@ -28,9 +32,7 @@ public class ObjectLabeler
     {
         ClearLabels();
         var heightFactor = VideoHeight / VideoWidth;
-        var topCorner = cameraTransform.position + cameraTransform.forward -
-                        cameraTransform.right / 2f +
-                        cameraTransform.up * heightFactor / 2f; 
+        var headCenter = cameraTransform.position + cameraTransform.forward - cameraTransform.up * 0.2f; 
 
         foreach (JObject prediction in predictions)
         {
@@ -41,20 +43,28 @@ public class ObjectLabeler
             float ymax = prediction.GetValue("ymax").Value<float>();
             float confidence = prediction.GetValue("confidence").Value<float>();
 
-            Debug.Log($"name: {name} x: {xmin} - {xmax}, y: {ymin} - {ymax}, conf: {confidence}");
+            Debug.Log($"name: {name} x: {xmax} - {xmin}, y: {ymax} - {ymin}, conf: {confidence}");
             var centerX = xmax - xmin;
             var centerY = ymax - ymin;
-            var recognizedPos = topCorner + cameraTransform.right * centerX -
-                                cameraTransform.up * centerY * heightFactor;
-            
-            //#if UNITY_EDITOR
-             _createdObjects.Add(CreateLabel(name, recognizedPos));
-            //#endif
-            /*var labelPos = DoRaycastOnSpatialMap(cameraTransform, recognizedPos);
-            if (labelPos != null)
+            var recognizedPos = headCenter + cameraTransform.right * (xmin - 0.5f) -
+                                cameraTransform.up * (ymin - 0.5f);
+
+            if (Application.isEditor)
             {
-                _createdObjects.Add(CreateLabel(_labelText, labelPos.Value));
-            }*/
+                _createdObjects.Add(CreateLabel(name, recognizedPos));
+            } else
+            {
+                var labelPos = DoRaycastOnSpatialMap(cameraTransform, recognizedPos);
+                Debug.Log($"Rec. position: {recognizedPos} Label position: {labelPos}");
+
+                if (labelPos != null)
+                {
+                    _createdObjects.Add(CreateLabel(name, labelPos.Value));
+                } else
+                {
+                    _createdObjects.Add(CreateLabel(name, recognizedPos));
+                }
+            }
         }
 
         /*if (_debugObject != null)
@@ -67,15 +77,38 @@ public class ObjectLabeler
 
     private Vector3? DoRaycastOnSpatialMap(Transform cameraTransform, Vector3 recognitionCenterPos)
     {
-        /*RaycastHit hitInfo;
+        RaycastHit hitInfo;
 
-        if (SpatialMappingManager.Instance != null &&
-            Physics.Raycast(cameraTransform.position, (recognitionCenterPos - cameraTransform.position),
-                out hitInfo, 10, SpatialMappingManager.Instance.LayerMask))
+        if (Physics.Raycast(cameraTransform.position, (recognitionCenterPos - cameraTransform.position),
+                out hitInfo, 10, GetSpatialMeshMask()))
         {
             return hitInfo.point;
-        }*/
+        }
         return null;
+    }
+
+    private static int GetSpatialMeshMask()
+    {
+        if (_meshPhysicsLayer == 0)
+        {
+            var spatialMappingConfig =
+              CoreServices.SpatialAwarenessSystem.ConfigurationProfile as
+                MixedRealitySpatialAwarenessSystemProfile;
+            if (spatialMappingConfig != null)
+            {
+                foreach (var config in spatialMappingConfig.ObserverConfigurations)
+                {
+                    var observerProfile = config.ObserverProfile
+                        as MixedRealitySpatialAwarenessMeshObserverProfile;
+                    if (observerProfile != null)
+                    {
+                        _meshPhysicsLayer |= (1 << observerProfile.MeshPhysicsLayer);
+                    }
+                }
+            }
+        }
+
+        return _meshPhysicsLayer;
     }
 
     private void ClearLabels()

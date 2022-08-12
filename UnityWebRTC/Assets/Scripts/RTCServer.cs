@@ -88,11 +88,9 @@ public class RTCServer : MonoBehaviour
         while (true)
         {
             await Task.Delay(1000);
-            Debug.Log("lmao");
 
             if (detections != null)
             {
-                Debug.Log("test");
                 var currentDetections = detections;
                 detections = null;
 
@@ -116,6 +114,7 @@ public class RTCServer : MonoBehaviour
             {
                 width = VideoWidth,
                 height = VideoHeight,
+                enableMrcRecordingIndicator = false,
             };
             if (VideoFps > 0)
             {
@@ -165,14 +164,7 @@ public class RTCServer : MonoBehaviour
         {
             string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
             detections = JArray.Parse(message);
-            //labeler.LabelObjects(json, null, VideoWidth, VideoHeight);
-            //CopyCameraTransForm();
-
-            /*foreach (JObject prediction in json)
-            {
-                //string test = prediction.GetValue("")
-                Debug.Log("Test");
-            }*/
+            Debug.Log($"Message received: {message}");
         };
 
         // Start peer connection
