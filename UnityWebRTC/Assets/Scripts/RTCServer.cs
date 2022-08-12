@@ -2,10 +2,14 @@
 using Microsoft.MixedReality.WebRTC;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+using Microsoft.MixedReality.Toolkit.Utilities;
 
 public class RTCServer : MonoBehaviour
 {
     Signaler signaler;
+    ObjectLabeler labeler;
+    JArray detections = null;
     Transceiver audioTransceiver = null;
     Transceiver videoTransceiver = null;
     AudioTrackSource audioTrackSource = null;
@@ -26,6 +30,15 @@ public class RTCServer : MonoBehaviour
     public int Port = 9999;
 
     public bool UseRemoteStun = false;
+
+    [SerializeField]
+    private GameObject _labelObject;
+
+    [SerializeField]
+    private GameObject _labelContainer;
+
+    [SerializeField]
+    private GameObject _debugObject;
 
     async void Start()
     {
@@ -68,6 +81,24 @@ public class RTCServer : MonoBehaviour
             signaler.IceServers.Add(new IceServer { Urls = { "stun:stun.l.google.com:19302" } });
         }
         signaler.Start();
+
+        // Create labeler
+        labeler = new ObjectLabeler(_labelObject, _labelContainer, _debugObject);
+
+        while (true)
+        {
+            await Task.Delay(1000);
+
+            if (detections != null)
+            {
+                var currentDetections = detections;
+                detections = null;
+
+                var currentTransform = Camera.main.transform;
+
+                labeler.LabelObjects(currentDetections, currentTransform, VideoWidth, VideoHeight);
+            }
+        }
     }
 
     async void OnClientConnected()
@@ -83,6 +114,7 @@ public class RTCServer : MonoBehaviour
             {
                 width = VideoWidth,
                 height = VideoHeight,
+                enableMrcRecordingIndicator = false,
             };
             if (VideoFps > 0)
             {
@@ -128,9 +160,11 @@ public class RTCServer : MonoBehaviour
         // Add data channel for communication
         var channel = await pc.AddDataChannelAsync("detection", true, false);
 
-        channel.MessageReceived += (byte[] message) => {
-            string s = System.Text.Encoding.UTF8.GetString(message, 0, message.Length);
-            Debug.Log($"Message received: {s}");
+        channel.MessageReceived += (byte[] buffer) =>
+        {
+            string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            detections = JArray.Parse(message);
+            Debug.Log($"Message received: {message}");
         };
 
         // Start peer connection
@@ -154,5 +188,14 @@ public class RTCServer : MonoBehaviour
         OnClientDisconnected();
         signaler?.Stop();
         Debug.Log("Program terminated.");
+    }
+
+    private Transform CopyCameraTransForm()
+    {
+        var g = new GameObject();
+        g.transform.position = CameraCache.Main.transform.position;
+        g.transform.rotation = CameraCache.Main.transform.rotation;
+        g.transform.localScale = CameraCache.Main.transform.localScale;
+        return g.transform;
     }
 }

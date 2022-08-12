@@ -90,6 +90,7 @@ UWP/
 # Python
 
 *.pyc
+*/env/
 
 # MSBuild 
 
