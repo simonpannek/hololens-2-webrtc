@@ -8,6 +8,7 @@ using Microsoft.MixedReality.Toolkit.Utilities;
 public class RTCServer : MonoBehaviour
 {
     Signaler signaler;
+    DataChannel channel = null;
     ObjectLabeler labeler;
     JArray detections = null;
     Transceiver audioTransceiver = null;
@@ -98,6 +99,11 @@ public class RTCServer : MonoBehaviour
 
                 labeler.LabelObjects(currentDetections, currentTransform, VideoWidth, VideoHeight);
             }
+
+            if (channel != null && channel.State == DataChannel.ChannelState.Open)
+            {
+                channel.SendMessage(System.Text.Encoding.UTF8.GetBytes("next"));
+            }
         }
     }
 
@@ -158,11 +164,11 @@ public class RTCServer : MonoBehaviour
         }
 
         // Add data channel for communication
-        var channel = await pc.AddDataChannelAsync("detection", true, false);
+        channel = await pc.AddDataChannelAsync("detection", true, false);
 
         channel.MessageReceived += (byte[] buffer) =>
         {
-            string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            string message = System.Text.Encoding.UTF8.GetString(buffer);
             detections = JArray.Parse(message);
             Debug.Log($"Message received: {message}");
         };
