@@ -20,6 +20,8 @@ from signaler import UnityTcpSignaling
 _LOGGER = logging.getLogger("mr.webrtc.python")
 _LOGGER.addHandler(logging.NullHandler())
 
+active = False
+
 
 def send(message):
     _LOGGER.debug("Receiver Channel > " + message)
@@ -34,6 +36,10 @@ async def run(pc, receiver, signaling, queue, render, model):
 
     @pc.on("datachannel")
     def on_datachannel(channel):
+        @channel.on("message")
+        async def on_message(message):
+            globals()["active"] = True
+            
         _LOGGER.info("Receiving datachannel '%s'" % channel.label)
         receiver.set_channel(channel)
 
@@ -50,29 +56,34 @@ async def run(pc, receiver, signaling, queue, render, model):
                 counter = 0
                 img = queue.pop()
                 queue.clear()
-                try:
-                    result = model(img)
-                    
-                    pandas = result.pandas()
-                    xyxyn = pandas.xyxyn[0]
-                    json = xyxyn.to_json(orient="records")
+                
+                if globals()["active"] or render:
+                    try:
+                        result = model(img)
+                        
+                        pandas = result.pandas()
+                        xyxyn = pandas.xyxyn[0]
+                        json = xyxyn.to_json(orient="records")
 
-                    send(json)
+                        if globals()["active"]:
+                            send(json)
+                            globals()["active"] = False
 
-                    if render:
-                        rendered = result.render()[0]
+                        if render:
+                            rendered = result.render()[0]
 
-                        cv2.imshow("render", rendered)
-                        cv2.waitKey(1)
+                            cv2.imshow("render", rendered)
+                            cv2.waitKey(1)
 
-                except Exception as e:
-                    print(e)
+                    except Exception as e:
+                        print(e)
             else:
                 counter += 1
 
-            if counter >= 10:
+            # TODO: Adjust this check, currently disabled
+            if counter >= 100 and False:
                 return
-            await asyncio.sleep(5.2)
+            await asyncio.sleep(0.1)
 
     # consume signaling
     while True:

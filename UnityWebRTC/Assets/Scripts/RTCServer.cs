@@ -8,6 +8,8 @@ using Microsoft.MixedReality.Toolkit.Utilities;
 public class RTCServer : MonoBehaviour
 {
     Signaler signaler;
+    DataChannel channel = null;
+    GameObject sendingPosition = null;
     ObjectLabeler labeler;
     JArray detections = null;
     Transceiver audioTransceiver = null;
@@ -85,18 +87,26 @@ public class RTCServer : MonoBehaviour
         // Create labeler
         labeler = new ObjectLabeler(_labelObject, _labelContainer, _debugObject);
 
+        sendingPosition = new GameObject();
+
         while (true)
         {
-            await Task.Delay(1000);
+            await Task.Delay(500);
 
             if (detections != null)
             {
                 var currentDetections = detections;
                 detections = null;
 
-                var currentTransform = Camera.main.transform;
+                var currentTransform = sendingPosition.transform;
 
                 labeler.LabelObjects(currentDetections, currentTransform, VideoWidth, VideoHeight);
+            }
+
+            if (channel != null && channel.State == DataChannel.ChannelState.Open)
+            {
+                channel.SendMessage(System.Text.Encoding.UTF8.GetBytes("next"));
+                SaveCameraTransForm();
             }
         }
     }
@@ -158,11 +168,11 @@ public class RTCServer : MonoBehaviour
         }
 
         // Add data channel for communication
-        var channel = await pc.AddDataChannelAsync("detection", true, false);
+        channel = await pc.AddDataChannelAsync("detection", true, false);
 
         channel.MessageReceived += (byte[] buffer) =>
         {
-            string message = System.Text.Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            string message = System.Text.Encoding.UTF8.GetString(buffer);
             detections = JArray.Parse(message);
             Debug.Log($"Message received: {message}");
         };
@@ -190,12 +200,10 @@ public class RTCServer : MonoBehaviour
         Debug.Log("Program terminated.");
     }
 
-    private Transform CopyCameraTransForm()
+    private void SaveCameraTransForm()
     {
-        var g = new GameObject();
-        g.transform.position = CameraCache.Main.transform.position;
-        g.transform.rotation = CameraCache.Main.transform.rotation;
-        g.transform.localScale = CameraCache.Main.transform.localScale;
-        return g.transform;
+        sendingPosition.transform.position = CameraCache.Main.transform.position;
+        sendingPosition.transform.rotation = CameraCache.Main.transform.rotation;
+        sendingPosition.transform.localScale = CameraCache.Main.transform.localScale;
     }
 }
