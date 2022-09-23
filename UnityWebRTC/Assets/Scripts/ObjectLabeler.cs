@@ -32,7 +32,7 @@ public class ObjectLabeler
     {
         ClearLabels();
         var heightFactor = VideoHeight / VideoWidth;
-        var headCenter = cameraTransform.position + cameraTransform.forward - cameraTransform.up * 0.2f; 
+        var headCenter = cameraTransform.forward - cameraTransform.up * 0.2f; 
 
         foreach (JObject prediction in predictions)
         {
@@ -62,7 +62,7 @@ public class ObjectLabeler
                     _createdObjects.Add(CreateLabel(name, labelPos.Value));
                 } else
                 {
-                    _createdObjects.Add(CreateLabel(name, recognizedPos));
+                    _createdObjects.Add(CreateLabel(name, cameraTransform.position + recognizedPos));
                 }
             }
         }
@@ -77,13 +77,21 @@ public class ObjectLabeler
 
     private Vector3? DoRaycastOnSpatialMap(Transform cameraTransform, Vector3 recognitionCenterPos)
     {
-        RaycastHit hitInfo;
+        RaycastHit hit;
+        var ray = new Ray(cameraTransform.position, recognitionCenterPos);
 
-        if (Physics.Raycast(cameraTransform.position, (recognitionCenterPos - cameraTransform.position),
-                out hitInfo, 10, GetSpatialMeshMask()))
+        Debug.Log($"Ray: {ray}, {GetSpatialMeshMask()}");
+
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, GetSpatialMeshMask()))
         {
-            return hitInfo.point;
+            Debug.Log($"Yay: {hit}");
+            //Debug.DrawRay(cameraTransform.position, recognitionCenterPos * hit.distance, Color.yellow);
+            return hit.point;
         }
+
+        Debug.Log("Nay");
+        //Debug.DrawRay(cameraTransform.position, recognitionCenterPos * 1000, Color.red);
+
         return null;
     }
 

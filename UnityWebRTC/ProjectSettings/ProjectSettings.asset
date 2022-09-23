@@ -152,6 +152,8 @@ PlayerSettings:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   - {fileID: -8603511256991087261, guid: 4bb97dd66eb670648a9bf9c6c1e0591d, type: 2}
   - {fileID: 2779066595971758093, guid: 509f95572649c7c47a0df7cbfea45d1b, type: 2}
   - {fileID: 0}
@@ -692,10 +694,10 @@ PlayerSettings:
       PointOfService: False
       RecordedCallsFolder: False
       Contacts: False
+      Proximity: False
       InternetClient: True
       CodeGeneration: False
       BackgroundMediaPlayback: False
-      Proximity: False
   metroTargetDeviceFamilies:
     Desktop: False
     Holographic: False
