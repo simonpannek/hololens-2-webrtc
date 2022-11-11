@@ -44,8 +44,7 @@ public class ObjectLabeler
             float confidence = prediction.GetValue("confidence").Value<float>();
 
             Debug.Log($"name: {name} x: {xmax} - {xmin}, y: {ymax} - {ymin}, conf: {confidence}");
-            var centerX = xmax - xmin;
-            var centerY = ymax - ymin;
+
             var recognizedPos = headCenter + cameraTransform.right * (xmin - 0.5f) -
                                 cameraTransform.up * (ymin - 0.5f);
 
