@@ -132,6 +132,7 @@ if __name__ == "__main__":
 
     # load model
     model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+    #model = torch.hub.load('ultralytics/yolov5', 'custom', path='best.pt', force_reload=True)
 
     running = True
 

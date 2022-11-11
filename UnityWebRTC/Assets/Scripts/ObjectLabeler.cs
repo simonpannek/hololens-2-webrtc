@@ -78,7 +78,8 @@ public class ObjectLabeler
     private Vector3? DoRaycastOnSpatialMap(Transform cameraTransform, Vector3 recognitionCenterPos)
     {
         RaycastHit hit;
-        var ray = new Ray(cameraTransform.position, recognitionCenterPos);
+        //var ray = new Ray(cameraTransform.position, recognitionCenterPos);
+        Ray ray = Camera.main.ViewportPointToRay(new Vector2(0.5f, 0.5f));
 
         Debug.Log($"Ray: {ray}, {GetSpatialMeshMask()}");
 
@@ -108,9 +109,11 @@ public class ObjectLabeler
                 {
                     var observerProfile = config.ObserverProfile
                         as MixedRealitySpatialAwarenessMeshObserverProfile;
+                    Debug.Log($"Physicslayer: {config}; Observer: {observerProfile}");
                     if (observerProfile != null)
                     {
-                        _meshPhysicsLayer |= (1 << observerProfile.MeshPhysicsLayer);
+                       _meshPhysicsLayer = 0;
+                       _meshPhysicsLayer |= (1 << observerProfile.MeshPhysicsLayer);
                     }
                 }
             }
