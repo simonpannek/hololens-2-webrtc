@@ -55,6 +55,7 @@ async def run(pc, receiver, signaling, queue, render, model):
             if len(queue):
                 counter = 0
                 img = queue.pop()
+                #img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
                 queue.clear()
                 
                 if globals()["active"] or render:
@@ -117,7 +118,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", "-v", action="count")
     parser.add_argument("--host", "-ip", help="ip address of signaler/sender instance")
     parser.add_argument("--port", "-p", help="port of signaler/sender instance")
-    parser.add_argument("--render", "-r", action="count", help="render the detection instead of sending it back")
+    parser.add_argument("--render", "-r", action="count", help="render the detection before sending it back")
     add_signaling_arguments(parser)
     args = parser.parse_args()
 
@@ -132,8 +133,8 @@ if __name__ == "__main__":
 
     # load model
     model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-    #model = torch.hub.load('ultralytics/yolov5', 'custom', path='best.pt', force_reload=True)
-
+    #model = torch.hub.load('ultralytics/yolov5', 'custom', path='best_yang.pt', force_reload=True)
+    model.cpu()
     running = True
 
     while running:
