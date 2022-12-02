@@ -31,7 +31,6 @@ public class ObjectLabeler
         Transform cameraTransform, uint VideoWidth, uint VideoHeight)
     {
         ClearLabels();
-        var heightFactor = VideoHeight / VideoWidth;
         var headCenter = cameraTransform.forward - cameraTransform.up * 0.2f; 
 
         foreach (JObject prediction in predictions)
@@ -45,8 +44,11 @@ public class ObjectLabeler
 
             Debug.Log($"name: {name} x: {xmax} - {xmin}, y: {ymax} - {ymin}, conf: {confidence}");
 
-            var recognizedPos = headCenter + cameraTransform.right * (xmin - 0.5f) -
-                                cameraTransform.up * (ymin - 0.5f);
+            var x = (xmin + xmax) / 2;
+            var y = ymin + (ymax - ymin) / 4;
+
+            var recognizedPos = headCenter + cameraTransform.right * (x - 0.5f) -
+                cameraTransform.up * (y - 0.5f);
 
             if (Application.isEditor)
             {
@@ -65,13 +67,6 @@ public class ObjectLabeler
                 }
             }
         }
-
-        /*if (_debugObject != null)
-        {
-            _debugObject.SetActive(false);
-        }
-
-        UnityEngine.Object.Destroy(cameraTransform.gameObject);*/
     }
 
     private Vector3? DoRaycastOnSpatialMap(Transform cameraTransform, Vector3 recognitionCenterPos)
