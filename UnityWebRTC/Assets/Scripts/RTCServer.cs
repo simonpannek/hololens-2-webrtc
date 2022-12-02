@@ -91,7 +91,7 @@ public class RTCServer : MonoBehaviour
 
         while (true)
         {
-            await Task.Delay(500);
+            await Task.Delay(2000);
 
             if (detections != null)
             {

@@ -7,9 +7,6 @@ using Microsoft.MixedReality.Toolkit.UI;
 using Microsoft.MixedReality.Toolkit.SpatialAwareness;
 using Microsoft.MixedReality.Toolkit;
 
-/// <summary>
-/// Based on https://github.com/LocalJoost/ToyAircraftFinder/blob/master/Assets/App/Scripts/ObjectLabeler.cs
-/// </summary>
 public class ObjectLabeler
 {
     private List<GameObject> _createdObjects = new List<GameObject>();
@@ -31,64 +28,66 @@ public class ObjectLabeler
         Transform cameraTransform, uint VideoWidth, uint VideoHeight)
     {
         ClearLabels();
-        var heightFactor = VideoHeight / VideoWidth;
-        var headCenter = cameraTransform.position + cameraTransform.forward - cameraTransform.up * 0.2f; 
+        // Head position of the user
+        var headCenter = cameraTransform.forward - cameraTransform.up * 0.2f; 
 
         foreach (JObject prediction in predictions)
         {
+            // Extract relevant fields from prediction
             string name = prediction.GetValue("name").Value<string>();
             float xmin = prediction.GetValue("xmin").Value<float>();
             float ymin = prediction.GetValue("ymin").Value<float>();
             float xmax = prediction.GetValue("xmax").Value<float>();
             float ymax = prediction.GetValue("ymax").Value<float>();
             float confidence = prediction.GetValue("confidence").Value<float>();
+            
+            // Calculate offset position for label
+            var x = (xmin + xmax) / 2;
+            var y = ymin + (ymax - ymin) / 4;
 
-            Debug.Log($"name: {name} x: {xmax} - {xmin}, y: {ymax} - {ymin}, conf: {confidence}");
-            var centerX = xmax - xmin;
-            var centerY = ymax - ymin;
-            var recognizedPos = headCenter + cameraTransform.right * (xmin - 0.5f) -
-                                cameraTransform.up * (ymin - 0.5f);
+            // Calculate position of recognized object on a plane in front of the user
+            var recognizedPos = headCenter + cameraTransform.right * (x - 0.5f) - cameraTransform.up * (y - 0.5f);
 
             if (Application.isEditor)
             {
+                // For debugging in the Unity Editor
                 _createdObjects.Add(CreateLabel(name, recognizedPos));
             } else
             {
+                // Raycast on spatial map to get the position of the label
                 var labelPos = DoRaycastOnSpatialMap(cameraTransform, recognizedPos);
-                Debug.Log($"Rec. position: {recognizedPos} Label position: {labelPos}");
 
                 if (labelPos != null)
                 {
+                    // If raycast hit the spatial map, create label at the hit position
                     _createdObjects.Add(CreateLabel(name, labelPos.Value));
                 } else
                 {
-                    _createdObjects.Add(CreateLabel(name, recognizedPos));
+                    // If raycast did not hit the spatial map, create label at the position on the plane
+                    _createdObjects.Add(CreateLabel(name, cameraTransform.position + recognizedPos));
                 }
             }
         }
-
-        /*if (_debugObject != null)
-        {
-            _debugObject.SetActive(false);
-        }
-
-        UnityEngine.Object.Destroy(cameraTransform.gameObject);*/
     }
 
     private Vector3? DoRaycastOnSpatialMap(Transform cameraTransform, Vector3 recognitionCenterPos)
     {
-        RaycastHit hitInfo;
+        // Define ray from camera to the recognition center
+        RaycastHit hit;
+        var ray = new Ray(cameraTransform.position, recognitionCenterPos);
 
-        if (Physics.Raycast(cameraTransform.position, (recognitionCenterPos - cameraTransform.position),
-                out hitInfo, 10, GetSpatialMeshMask()))
+        // Raycast on spatial map
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, GetSpatialMeshMask()))
         {
-            return hitInfo.point;
+            return hit.point;
         }
+
         return null;
     }
 
     private static int GetSpatialMeshMask()
     {
+        // Get the physics layer of the spatial mesh
         if (_meshPhysicsLayer == 0)
         {
             var spatialMappingConfig =
@@ -102,7 +101,7 @@ public class ObjectLabeler
                         as MixedRealitySpatialAwarenessMeshObserverProfile;
                     if (observerProfile != null)
                     {
-                        _meshPhysicsLayer |= (1 << observerProfile.MeshPhysicsLayer);
+                       _meshPhysicsLayer |= (1 << observerProfile.MeshPhysicsLayer);
                     }
                 }
             }
@@ -123,6 +122,7 @@ public class ObjectLabeler
     private GameObject CreateLabel(string text, Vector3 location)
     {
         var labelObject = UnityEngine.Object.Instantiate(_labelObject);
+
         var toolTip = labelObject.GetComponent<ToolTip>();
         toolTip.ShowHighlight = false;
         toolTip.ShowBackground = true;
@@ -131,9 +131,11 @@ public class ObjectLabeler
         toolTip.transform.parent = _labelContainer.transform;
         toolTip.AttachPointPosition = location;
         toolTip.ContentParentTransform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+
         var connector = toolTip.GetComponent<ToolTipConnector>();
         connector.PivotDirectionOrient = ConnectorOrientType.OrientToCamera;
         connector.Target = labelObject;
+
         return labelObject;
     }
 }
